@@ -1,0 +1,35 @@
+name: Invoke MaidCafe action
+description: Invoke a MaidCafe action on a managed host through the cloud relay and wait for the result
+
+inputs:
+  daemon_id:
+    description: MaidCafe daemon (host) id to run the action on
+    required: true
+  action:
+    description: Action name configured on the daemon ([[daemon.actions]])
+    required: true
+  token:
+    description: MaidCafe API credential token (mk_...) or Solarpass token; store it as a repository secret
+    required: true
+  body:
+    description: JSON body piped to the action on stdin (also fills {{ NAME }} script template variables)
+    required: false
+    default: '{}'
+  api:
+    description: MaidCafe cloud base URL
+    required: false
+    default: https://mk.solsynth.dev
+  timeout_minutes:
+    description: Max minutes to wait for the daemon to pick up and finish the action
+    required: false
+    default: '10'
+
+outputs:
+  result_code:
+    description: HTTP status the daemon reported for the run (200 = success, 502 = non-zero exit, 504 = timeout)
+  result_body:
+    description: Base64 of the action's stdout
+
+runs:
+  using: node24
+  main: dist/index.js

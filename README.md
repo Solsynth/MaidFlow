@@ -1,13 +1,16 @@
 # MaidFlow
 
-Reusable GitHub Actions workflow that invokes a [MaidCafe](https://github.com/Solsynth/MaidCafe)
-action on a managed host through the cloud relay.
+A JavaScript GitHub Action that invokes a
+[MaidCafe](https://github.com/Solsynth/MaidCafe) action on a managed host
+through the cloud relay and waits for the result.
 
-The workflow enqueues a webhook request on the MaidCafe cloud
+The action enqueues a webhook request on the MaidCafe cloud
 (`POST /api/daemons/:id/webhook-requests`), then polls the request until the
 daemon has picked it up and reported the result. The daemon polls the relay
 once a minute, so a run takes up to one minute plus the action's own runtime
-before the result is known.
+before the result is known. The job fails when the request never completes,
+the daemon rejects it, or the action exits non-zero; the relay result (stdout,
+error) is printed to the run log.
 
 Actions carry no secret; authentication is the cloud credential scoped to the
 daemon and action names. Use this for CI/CD. Secret-protected webhooks are
@@ -36,39 +39,16 @@ meant for humans and other systems — see the MaidCafe
 3. Find the daemon id: `GET /api/daemons?workspace_id=<id>` (or the cloud
    page's host detail).
 
-## Usage from another repository
-
-```yaml
-jobs:
-  backup:
-    uses: Solsynth/MaidFlow/.github/workflows/invoke.yml@main
-    with:
-      daemon_id: d0f2f0c2-...
-      action: backup
-      body: '{"job":"incremental"}'
-      timeout_minutes: 15
-    secrets:
-      MAIDCAFE_TOKEN: ${{ secrets.MAIDCAFE_TOKEN }}
-```
-
-## Manual dispatch
-
-Use **Actions → Invoke MaidCafe action → Run workflow** and fill in the daemon
-id and action name. The body defaults to `{}` and is piped to the action's
-stdin; for `script = true` actions a JSON body also fills `{{ NAME }}`
-placeholders in the script.
-
 ## Inputs
 
 | Input | Required | Default | Meaning |
 | --- | --- | --- | --- |
 | `daemon_id` | yes | — | MaidCafe daemon (host) id |
 | `action` | yes | — | Action name configured on the daemon |
+| `token` | yes | — | MaidCafe API credential token (`mk_...`) or Solarpass token |
 | `body` | no | `{}` | JSON body piped to the action on stdin |
 | `api` | no | `https://mk.solsynth.dev` | MaidCafe cloud base URL |
 | `timeout_minutes` | no | `10` | Max wait for the daemon to finish |
-
-Secret: `MAIDCAFE_TOKEN` (required) — a MaidCafe API credential token.
 
 ## Outputs
 
@@ -77,6 +57,25 @@ Secret: `MAIDCAFE_TOKEN` (required) — a MaidCafe API credential token.
 | `result_code` | HTTP status the daemon reported: `200` success, `502` non-zero exit, `504` timeout, `401`/`404`/`413`/`429` rejected |
 | `result_body` | Base64 of the action's stdout |
 
-The job fails when the request never completes, the daemon rejects it, or the
-action exits non-zero. The relay result (stdout, error) is printed to the run
-log.
+## Example usage
+
+```yaml
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run backup on the managed host
+        id: backup
+        uses: Solsynth/MaidFlow@v1
+        with:
+          daemon_id: d0f2f0c2-...
+          action: backup
+          body: '{"job":"incremental"}'
+          token: ${{ secrets.MAIDCAFE_TOKEN }}
+          timeout_minutes: 15
+
+      - name: Print the result
+        run: echo "exit ${{ steps.backup.outputs.result_code }}"
+```
+
+Pin to a full commit SHA in production (`uses: Solsynth/MaidFlow@<sha>`).

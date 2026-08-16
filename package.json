@@ -1,0 +1,28 @@
+{
+  "name": "maidflow",
+  "version": "1.0.0",
+  "description": "GitHub Action that invokes a MaidCafe action on a managed host through the cloud relay",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup --config rollup.config.js",
+    "all": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Solsynth/MaidFlow.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Solsynth/MaidFlow/issues"
+  },
+  "homepage": "https://github.com/Solsynth/MaidFlow#readme",
+  "dependencies": {
+    "@actions/core": "^3.0.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^4.44.0"
+  }
+}
