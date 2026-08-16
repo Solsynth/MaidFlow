@@ -17,6 +17,18 @@ daemon and action names. Use this for CI/CD. Secret-protected webhooks are
 meant for humans and other systems — see the MaidCafe
 [webhook docs](https://github.com/Solsynth/MaidCafe/blob/main/docs/webhooks.md).
 
+Two modes:
+
+- **`relay`** (default) — invoke through the MaidCafe cloud. The action
+  enqueues a webhook request and polls until the daemon picks it up and
+  reports. Works anywhere the runner can reach the cloud; the daemon needs no
+  inbound connectivity.
+- **`direct`** — call the daemon's HTTP API (`POST /api/v1/actions/:name`)
+  synchronously. No cloud, no polling; the runner must be able to reach the
+  daemon's `listen` address (default `127.0.0.1:8747`), e.g. via an SSH
+  tunnel or Tailscale. Authenticates with the daemon **metrics secret**
+  (`daemon.metricsSecret`), not the cloud credential.
+
 ## Setup
 
 1. Create a credential scoped to the target daemon and action:
@@ -43,12 +55,14 @@ meant for humans and other systems — see the MaidCafe
 
 | Input | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `daemon_id` | yes | — | MaidCafe daemon (host) id |
+| `mode` | no | `relay` | `relay` (via MaidCafe cloud) or `direct` (daemon HTTP API) |
+| `daemon_id` | relay | — | MaidCafe daemon (host) id |
+| `daemon_url` | direct | — | Daemon HTTP API base URL (e.g. `http://127.0.0.1:8747`) |
 | `action` | yes | — | Action name configured on the daemon |
-| `token` | yes | — | MaidCafe API credential token (`mk_...`) or Solarpass token |
+| `token` | yes | — | Cloud credential token (`mk_...`) in relay mode; daemon metrics secret in direct mode |
 | `body` | no | `{}` | JSON body piped to the action on stdin |
-| `api` | no | `https://mk.solsynth.dev` | MaidCafe cloud base URL |
-| `timeout_minutes` | no | `10` | Max wait for the daemon to finish |
+| `api` | no | `https://mk.solsynth.dev` | MaidCafe cloud base URL (relay mode) |
+| `timeout_minutes` | no | `10` | Max wait for the daemon to finish (relay mode) |
 
 ## Outputs
 
@@ -79,3 +93,31 @@ jobs:
 ```
 
 Pin to a full commit SHA in production (`uses: Solsynth/MaidFlow@<sha>`).
+
+## Direct mode (no cloud)
+
+```yaml
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      # Example: tunnel to the daemon's loopback listener.
+      - name: Open SSH tunnel to the host
+        run: ssh -fN -L 8747:127.0.0.1:8747 host-01
+
+      - name: Run cleanup directly on the daemon
+        id: cleanup
+        uses: Solsynth/MaidFlow@v1
+        with:
+          mode: direct
+          daemon_url: http://127.0.0.1:8747
+          action: cleanup
+          body: '{"retention_days":14}'
+          token: ${{ secrets.MAIDCAFE_DAEMON_METRICS_SECRET }}
+```
+
+The daemon runs the action synchronously and returns the result in the
+response, so direct mode does not poll. Result codes match the daemon's HTTP
+API: `200` success, `502` non-zero exit, `504` timeout, `401` bad metrics
+secret, `404` unknown action, `413` oversized body, `429` concurrency
+exhausted.

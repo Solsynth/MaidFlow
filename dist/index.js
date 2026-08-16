@@ -28432,18 +28432,7 @@ function request(url, token, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
-async function run() {
-  const daemonId = getInput("daemon_id", { required: true });
-  const action = getInput("action", { required: true });
-  const token = getInput("token", { required: true });
-  const api = (getInput("api") || DEFAULT_API).replace(/\/+$/, "");
-  const body = getInput("body") || "{}";
-  const timeoutInput = getInput("timeout_minutes") || "10";
-  const timeoutMinutes = Number(timeoutInput);
-  if (!Number.isFinite(timeoutMinutes) || timeoutMinutes <= 0) {
-    throw new Error(`timeout_minutes must be a positive number, got "${timeoutInput}"`);
-  }
-
+async function invokeRelay(api, daemonId, action, token, body, timeoutMinutes) {
   // 1. Enqueue the invocation on the MaidCafe cloud relay.
   const enqueueUrl = `${api}/api/daemons/${encodeURIComponent(daemonId)}/webhook-requests`;
   const enqueueResponse = await request(enqueueUrl, token, {
@@ -28500,6 +28489,69 @@ async function run() {
   if (resultCode !== 200 || resultError) {
     throw new Error(`action failed (result_code=${resultCode}, error=${resultError})`);
   }
+}
+
+async function invokeDirect(daemonUrl, action, token, body) {
+  // The daemon HTTP API runs the action synchronously: POST the body to
+  // /api/v1/actions/:name authenticated with the daemon metrics secret.
+  const url = `${daemonUrl}/api/v1/actions/${encodeURIComponent(action)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+  const text = await response.text();
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Non-JSON bodies are surfaced verbatim in the error message.
+  }
+
+  const resultCode = response.status;
+  const stdout = parsed && typeof parsed.stdout === "string" ? parsed.stdout : "";
+  const stderr = parsed && typeof parsed.stderr === "string" ? parsed.stderr : "";
+  const errorText = !parsed ? text : typeof parsed.error === "string" ? parsed.error : "";
+
+  setOutput("result_code", String(resultCode));
+  setOutput("result_body", base64(stdout));
+  info(`result_code=${resultCode}`);
+  if (stdout) {
+    info(`stdout:\n${stdout}`);
+  }
+  if (stderr) {
+    error(`stderr: ${stderr}`);
+  }
+  if (resultCode !== 200) {
+    const suffix = errorText ? `, error=${errorText}` : "";
+    throw new Error(`action failed (result_code=${resultCode}${suffix})`);
+  }
+}
+
+async function run() {
+  const mode = getInput("mode") || "relay";
+  if (mode !== "relay" && mode !== "direct") {
+    throw new Error(`mode must be "relay" or "direct", got "${mode}"`);
+  }
+
+  const action = getInput("action", { required: true });
+  const token = getInput("token", { required: true });
+  const api = (getInput("api") || DEFAULT_API).replace(/\/+$/, "");
+  const body = getInput("body") || "{}";
+  const timeoutInput = getInput("timeout_minutes") || "10";
+  const timeoutMinutes = Number(timeoutInput);
+  if (!Number.isFinite(timeoutMinutes) || timeoutMinutes <= 0) {
+    throw new Error(`timeout_minutes must be a positive number, got "${timeoutInput}"`);
+  }
+
+  if (mode === "direct") {
+    const daemonUrl = getInput("daemon_url", { required: true }).replace(/\/+$/, "");
+    await invokeDirect(daemonUrl, action, token, body);
+    return;
+  }
+
+  const daemonId = getInput("daemon_id", { required: true });
+  await invokeRelay(api, daemonId, action, token, body, timeoutMinutes);
 }
 
 run().catch((error) => setFailed(error.message));

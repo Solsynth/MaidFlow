@@ -1,26 +1,33 @@
 name: Invoke MaidCafe action
-description: Invoke a MaidCafe action on a managed host through the cloud relay and wait for the result
+description: Invoke a MaidCafe action on a managed host through the cloud relay, or directly against the daemon HTTP API
 
 inputs:
+  mode:
+    description: 'relay (invoke through the MaidCafe cloud; default) or direct (call the daemon HTTP API at daemon_url)'
+    required: false
+    default: relay
   daemon_id:
-    description: MaidCafe daemon (host) id to run the action on
-    required: true
+    description: MaidCafe daemon (host) id to run the action on (relay mode)
+    required: false
+  daemon_url:
+    description: Daemon HTTP API base URL for direct mode, e.g. http://127.0.0.1:8747 behind an SSH tunnel or via Tailscale
+    required: false
   action:
     description: Action name configured on the daemon ([[daemon.actions]])
     required: true
   token:
-    description: MaidCafe API credential token (mk_...) or Solarpass token; store it as a repository secret
+    description: MaidCafe API credential token (mk_...) for relay mode, or the daemon metrics secret for direct mode; store it as a repository secret
     required: true
   body:
     description: JSON body piped to the action on stdin (also fills {{ NAME }} script template variables)
     required: false
     default: '{}'
   api:
-    description: MaidCafe cloud base URL
+    description: MaidCafe cloud base URL (relay mode)
     required: false
     default: https://mk.solsynth.dev
   timeout_minutes:
-    description: Max minutes to wait for the daemon to pick up and finish the action
+    description: Max minutes to wait for the daemon to pick up and finish the action (relay mode)
     required: false
     default: '10'
 
