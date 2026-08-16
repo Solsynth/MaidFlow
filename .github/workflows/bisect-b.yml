@@ -1,0 +1,28 @@
+name: Bisect B
+on:
+  workflow_call:
+    inputs:
+      daemon_id:
+        required: true
+        type: string
+      action:
+        required: true
+        type: string
+    secrets:
+      MAIDCAFE_TOKEN:
+        required: true
+    outputs:
+      result_code:
+        description: status
+        value: ${{ jobs.invoke.outputs.result_code }}
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    outputs:
+      result_code: ${{ steps.result.outputs.result_code }}
+    steps:
+      - id: result
+        env:
+          TOKEN: ${{ secrets.MAIDCAFE_TOKEN }}
+          DID: ${{ inputs.daemon_id }}
+        run: echo "result_code=200" >> "$GITHUB_OUTPUT"
