@@ -47,7 +47,7 @@ async function invokeRelay(api, daemonId, action, token, body, timeoutMinutes) {
   if (status !== "done") {
     throw new Error(
       `action did not complete within ${timeoutMinutes} minute(s) (status=${status}); ` +
-        "the daemon polls the relay once a minute"
+        "the daemon picks up relayed requests every 15 seconds"
     );
   }
 

@@ -7,10 +7,11 @@ through the cloud relay and waits for the result.
 The action enqueues a webhook request on the MaidCafe cloud
 (`POST /api/daemons/:id/webhook-requests`), then polls the request until the
 daemon has picked it up and reported the result. The daemon polls the relay
-once a minute, so a run takes up to one minute plus the action's own runtime
-before the result is known. The job fails when the request never completes,
-the daemon rejects it, or the action exits non-zero; the relay result (stdout,
-error) is printed to the run log.
+every 15 seconds and pickup is not throttled by the workspace polling quota,
+so a run takes seconds to start plus the action's own runtime before the
+result is known. The job fails when the request never completes, the daemon
+rejects it, or the action exits non-zero; the relay result (stdout, error) is
+printed to the run log.
 
 Actions carry no secret; authentication is the cloud credential scoped to the
 daemon and action names. Use this for CI/CD. Secret-protected webhooks are
