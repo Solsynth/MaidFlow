@@ -1,6 +1,6 @@
 {
   "name": "maidflow",
-    "version": "2.1.0",
+    "version": "2.2.0",
   "description": "GitHub Action that invokes a MaidCafe action on a managed host through the cloud relay",
   "main": "dist/index.js",
   "type": "module",
