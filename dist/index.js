@@ -28421,7 +28421,7 @@ function info(message) {
 }
 
 const POLL_INTERVAL_MS = 5000;
-const DEFAULT_API = "https://mk.solsynth.dev";
+const DEFAULT_API = "https://mkc.solsynth.dev";
 
 function base64(value) {
   return Buffer.from(value, "utf8").toString("base64");

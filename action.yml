@@ -25,7 +25,7 @@ inputs:
   api:
     description: MaidCafe cloud base URL (relay mode)
     required: false
-    default: https://mk.solsynth.dev
+    default: https://mkc.solsynth.dev
   timeout_minutes:
     description: Max minutes to wait for the daemon to pick up and finish the action (relay mode)
     required: false

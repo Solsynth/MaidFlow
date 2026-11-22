@@ -35,7 +35,7 @@ Two modes:
 1. Create a credential scoped to the target daemon and action:
 
    ```sh
-   curl -X POST https://mk.solsynth.dev/api/credentials \
+   curl -X POST https://mkc.solsynth.dev/api/credentials \
      -H 'Authorization: Bearer <solar-token>' \
      -H 'Content-Type: application/json' \
      -d '{"label":"ci-backup","host_ids":["<host-id>"],"action_names":["backup"]}'
@@ -62,7 +62,7 @@ Two modes:
 | `action` | yes | — | Action name configured on the daemon |
 | `token` | yes | — | Cloud credential token (`mk_...`) in relay mode; daemon metrics secret in direct mode |
 | `body` | no | `{}` | JSON body piped to the action on stdin |
-| `api` | no | `https://mk.solsynth.dev` | MaidCafe cloud base URL (relay mode) |
+| `api` | no | `https://mkc.solsynth.dev` | MaidCafe cloud base URL (relay mode) |
 | `timeout_minutes` | no | `10` | Max wait for the daemon to finish (relay mode) |
 
 ## Outputs
@@ -81,7 +81,7 @@ jobs:
     steps:
       - name: Run backup on the managed host
         id: backup
-        uses: Solsynth/MaidFlow@v1
+        uses: Solsynth/MaidFlow@v2
         with:
           daemon_id: d0f2f0c2-...
           action: backup
@@ -108,7 +108,7 @@ jobs:
 
       - name: Run cleanup directly on the daemon
         id: cleanup
-        uses: Solsynth/MaidFlow@v1
+        uses: Solsynth/MaidFlow@v2
         with:
           mode: direct
           daemon_url: http://127.0.0.1:8747
